@@ -24,5 +24,10 @@ $include ExampleAmino2
 $include --lib testlib.fasta importedDNA1
 $include DerivedDNA1
 
-> ImportedDirectly
+> ImportedAminos
+$include --lib testlib.fasta importedPointlessAminos
+
+> ImportedCrap
 $include --lib testlib.fasta importedDerivedDNA1
+$include --lib testlib.fasta importedDerivedDNA3
+$dumb_backtranslate ImportedAminos

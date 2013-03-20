@@ -53,7 +53,7 @@ Macros = {
 # Sample macro, either references a pre-compiled fasta object or imports a library
 # as a new MultiFasta file and gets the fasta object from that.
 imported_libs = {}
-def include(args, currentnamespace):
+def include(args, namespace):
     # Using argparse allows flexible use of the argument list with optional args
     # etc, and suits the use of shlex.split() perfectly as it mimics a bash-like
     # interface.
@@ -75,11 +75,11 @@ def include(args, currentnamespace):
         # If already imported, use preexisting FastaCompiler object from imported_libs.
         else: lib = imported_libs[args.lib]
     else:
-        lib = currentnamespace
+        lib = namespace
     return lib.get_block_sequence(args.block_name)
 Macros['include'] = include
 
-def complement(args, currentnamespace):
+def complement(args, namespace):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
@@ -87,31 +87,31 @@ def complement(args, currentnamespace):
     # This demonstrates trans-macro calls, but also the awkwardness of doing so with
     # optional arguments and argparse..
     inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call)
+    seq = Macros['include'](inc_call, namespace)
     seq = sequtils.get_complement(seq)
     return seq.lower()
 Macros['complement'] = complement
 
-def translate(args, currentnamespace):
+def translate(args, namespace):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
     inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, currentnamespace)
+    seq = Macros['include'](inc_call, namespace)
     aminoseq = sequtils.translate(seq, args.table)
     return aminoseq
 Macros['translate'] = translate
 
-def dumb_backtranslate(args, currentnamespace):
+def dumb_backtranslate(args, namespace):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
     inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, currentnamespace)
+    seq = Macros['include'](inc_call, namespace)
     rtr_seq = sequtils.dumb_backtranslate(seq, args.table)
     return rtr_seq
 Macros['dumb_backtranslate'] = dumb_backtranslate
@@ -128,7 +128,7 @@ class FastaBlock(object):
     FastaFormat = "> {0}\n{1}"
     def __init__(self, title, sequence, meta):
         self.title = title
-        self.sequence = sequence
+        self.sequence = sequence.lower()
         self.meta = meta
         if "type" in self.meta:
             self.type = self.meta['type']
@@ -180,7 +180,9 @@ class FastaCompiler(object):
             except Exception as E:
                 # For debug, just raise. Can later sort out common exceptions
                 # and raise more informative errors or catch/ignore.
-                raise E
+                #raise E
+                errmsg = "Error compiling block with first line "+Block.splitlines()[0]+":\n\t"+str(E)
+                raise FastaCompileError(errmsg)
 
     def get_block(self, title):
         if title not in self.namespace:

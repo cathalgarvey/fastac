@@ -1,0 +1,21 @@
+> importedDNA1
+gcggccattacgatgc
+
+> importedDNA2
+cgggtgtgtg
+
+> importedDerivedDNA1
+$include --lib testlib2.fasta deepDNA1
+$include importedDNA1
+$include importedDNA2
+
+> importedDerivedDNA2
+$complement importedDerivedDNA1
+$complement --lib testlib2.fasta deepDNA2
+
+> importedPointlessAminos
+$translate --lib testlib2.fasta deepDNA1
+
+> importedDerivedDNA3
+$dumb_backtranslate --lib testlib2.fasta deepAminos1
+

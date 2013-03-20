@@ -83,6 +83,9 @@ def deduce_alphabet(string):
             return "dna"
         elif "U" in charset:
             return "rna"
+        else:
+            # Assume DNA if ambiguous.
+            return "dna"
     elif couldbeaminos:
         return "aminos"
     else:
@@ -90,27 +93,23 @@ def deduce_alphabet(string):
                          "string. Charset is '{}'".format(charset))
 
 def get_complement_alphabet(string):
-    charset = _uniquify(string)
-    for character in charset:
-        if character not in iupac_nucleotides:
-            raise ValueError(("Non-base found in nucleotides string."
-                  " The string consists of the following characters:\n")
-                  +str(charset))
-    if "T" in charset and "U" in charset:
-        raise ValueError(("Cannot get reverse complement of a hybrid"
-                          " DNA/RNA sequence."))
-    elif "U" in charset:
-        basedict = rnaiupaccomplement
+    string = string.upper()
+    alphabet = deduce_alphabet(string)
+    if alphabet == "aminos":
+        raise ValueError("Cannot get the complement of an amino sequence.")
+    elif alphabet == "rna":
+        return rnaiupaccomplement
+    elif alphabet == "dna":
+        return dnaiupaccomplement
     else:
-        basedict = dnaiupaccomplement
-    return basedict
+        raise ValueError("Could not get complement for string: "+string+"\nAlphabet deduced was: "+str(alphabet))
 
 def get_complement(nucleotides):
     'Given a string of nucleotides (RNA *or* DNA), return reverse complement.'
     # Reverse the string:
     nucleotides = nucleotides.upper()[::-1]
     # Determine molecule type:
-    basedict = deduce_alphabet(nucleotides)
+    basedict = get_complement_alphabet(nucleotides)
     for base in basedict.keys():
         # Replace each base with its complementary base in lowercase:
         # (lowercase means previously substituted bases aren't replaced)
@@ -124,7 +123,7 @@ def translate(sequence, table, frame=1):
     translation_table = translationtables.__dict__[table]
     aminos = []
     for codon in _chunks(sequence[frame:], 3):
-        if not len(codon) == "3": break
+        if len(codon) < 3: break
         encoded = translation_table['codons'][codon]
         aminos.append(encoded)
         if encoded == "*": break

@@ -1,0 +1,28 @@
+> ExampleDNA1
+; A dumb comment.
+CGATTTCGCGTCCCCGAA
+
+> ExampleDNA2 {"comments":[[2,5,"Haha another lame comment"]]}
+CGGATTTACCC
+
+> ExampleAmino1
+mklpggdaaryy
+
+> ExampleAmino2
+plkvvmasc
+
+> DerivedDNA1
+$include ExampleDNA1
+$include ExampleDNA2
+
+> DerivedAmino1
+$include ExampleAmino1
+$include ExampleAmino2
+
+> DerivedDNA2
+# testlib defines importedDNA1 importedDNA2 importedDerivedDNA1
+$include --lib testlib.fasta importedDNA1
+$include DerivedDNA1
+
+> ImportedDirectly
+$include --lib testlib.fasta importedDerivedDNA1

@@ -1,0 +1,9 @@
+> importedDNA1
+gcggccattacgatgc
+
+> importedDNA2
+cgggtgtgtg
+
+> importedDerivedDNA1
+$include importedDNA1
+$include importedDNA2

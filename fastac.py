@@ -4,6 +4,7 @@ import argparse
 import shlex
 import sequtils
 import json
+import collections
 
 # Handy functions:
 def _chunks(l, n):
@@ -151,6 +152,202 @@ class FastaCompileError(FastaError):
     'For errors that arise as consequence of attempting to compile fasta.'
     pass
 
+class FastaBlock(object):
+    FastaFormat = "> {0}\n{1}"
+    def __init__(self, title, sequence, meta):
+        self.title = title
+        self.sequence = sequence
+        self.meta = meta
+        if "type" in self.meta:
+            self.type = self.meta['type']
+        else:
+            self.type = sequtils.deduce_alphabet(self.sequence)
+            self.meta['type'] = self.type
+
+    @staticmethod
+    def _chunks(l, n):
+        for i in range(0, len(l), n): yield l[i:i+n]
+
+    def as_dict(self):
+        'Used for exporting whole namespaces as JSON by converting subunits to dicts.'
+        return {"title":self.title, "sequence":self.sequence,
+                           "meta":self.meta, "type":self.type}
+
+    def as_json(self, indent=2):
+        'Returns a json string defining the content of this object for easy export/import.'
+        return json.dumps(self.as_dict(), indent=indent)
+
+    def as_fasta(self, linewrap=50):
+        'Exports as vanilla FASTA.'
+        OutSeq = '\n'.join([x for x in self._chunks(self.sequence, linewrap)])
+        return self.FastaFormat.format(self.title, OutSeq)
+
+    def as_metafasta(self, linewrap=50):
+        'Exports as valid FASTA, but preserves metadata as a (huge, ugly) title line extension.'
+        Metatitle = '{} {}'.format(self.title, json.dumps(self.meta))
+        OutSeq = '\n'.join([x for x in self._chunks(self.sequence, linewrap)])
+        return self.FastaFormat.format(Metatitle, OutSeq)
+
+class FastaCompiler(object):
+    '''Contains methods for compiling blocks, multifasta files.
+    Also acts as a scope for precompiled blocks.'''
+    def __init__(self, macros={}, linewrap=50, lettercase="lower", namespace = {}):
+        self.macros = macros
+        self.linewrap = linewrap
+        self.lettercase = lettercase
+        self.namespace = collections.OrderedDict(namespace)
+    def compile_file(self, filen):
+        with open(filen) as InputFile:
+            self.compile_multifasta(InputFile.read())
+
+    def compile_multifasta(self, file_contents):
+        for Block in file_contents.strip().split("\n\n"):
+            Block = Block.strip() # Handles more than one blank line b/w blocks.
+            try:
+                self.compile_block(Block)
+            except Exception as E:
+                # For debug, just raise. Can later sort out common exceptions
+                # and raise more informative errors or catch/ignore.
+                raise E
+
+    def get_block(self, title):
+        if title not in self.namespace:
+            errmsg="Could not find {} - Current namespace: {}".format(title, str(self.namespace))
+            raise ValueError(errmsg)
+        return self.namespace[title]
+
+    def get_block_sequence(self, title):
+        return self.get_block(title).sequence
+
+    def do_macro(self, macroline):
+        '''Handles macro calls. Can be made more useful/complex later by
+        allowing macros to define "actions" to undertake with returned data,
+        so that macros can return entire sequence blocks to be registered in
+        the namespace directly rather than included in the current compile
+        block, for example.'''
+        macroline = shlex.split(macroline.strip()[1:])
+        if macroline[0] in self.macros:
+            # Macros should be passed the Compiler or Namespace object:
+            result = self.macros[macroline[0]](macroline[1:], self)
+        if result: return result
+
+    @staticmethod
+    def import_inline_meta(meta, titlemeta, mergeconflicts = True):
+        '''Given a meta dict and JSON found in a title block, check if titlemeta
+        is "valid" fastac json, and import any keys found.
+        This tries to avoid clobbering in general, but titlemeta subkeys defining
+        a dict which already exists in meta will be applied as a dict update, in
+        which case overwriting may occur. Also, if both define a list with the
+        same name (for example "comments"), then the titlemeta list will extend
+        meta, in which case duplicates may occur.
+        Finally, returns the sequence type, if defined, or an empty string.'''
+        if not isinstance(titlemeta, dict): return ''
+        for key in titlemeta:
+            if key not in meta:
+                meta[key] = titlemeta[key]
+            else:
+                # Merge conflicts (overwriting keys in case of two dicts)
+                if isinstance(meta[key],list) and isinstance(titlemeta[key],list):
+                    meta[key].extend(titlemeta[key])
+                elif isinstance(meta[key],dict) and isinstance(titlemeta[key],dict):
+                    meta[key].update(titlemeta[key])
+
+    @staticmethod
+    def handle_markup(line, pos, meta):
+        '''Processes line, seeking a json comment or just using the whole line
+        and pos to add a comment to "meta" dict.'''
+        inline_meta, line = _getjson(line)
+        if len(inline_meta) > 1:
+            errmsg = ("Only one inline JSON item can be defined per "
+                        "metadata line:\n\t"+line)
+            raise FastaCompileError(errmsg)
+        if "comment" in inline_meta:
+            # Inline json comments take precedence and other line
+            # contents are ignored entirely.
+            # They take the form: {"comment":[4,55, "Promoter and RBS"]}
+            if not isinstance(inline_meta['comment'], list) or\
+                not isinstance(inline_meta['comment'][0], int) or\
+                not isinstance(inline_meta['comment'][1], int) or\
+                not isinstance(inline_meta['comment'][2], str):
+                errmsg = ("JSON inline comments must be of form "
+                        "[int, int, string]:\n\t"+line)
+                raise FastaCompileError(errmsg)
+            comment = inline_meta['comment']
+        else:
+            comment = [pos, pos, line.lstrip(";").lstrip()]
+        meta['comments'].append(comment)
+
+    def compile_block(self, block, returnblock=False):
+        '''Compiles a FASTA sequence block, possibly with macros.
+        If returnblock, then the resulting compiled FASTA object is returned.
+        Otherwise, it is added to this FastaCompiler's namespace attribute.'''
+        if not isinstance(block, str):raise ValueError("block must be a string")
+        # As compile_fasta_block
+        title = ''
+        lines = []
+        # Comment format is [int(start), int(finish), str(comment)], like [1,14,"Promoter"]
+        meta = {"comments":[]}
+        for line in block.splitlines():
+            line = line.strip()
+            if line[0] == ">":
+                if title:
+                    errmsg =("Title already defined for this block, but another"
+                    " title line has been encountered:\n\t"+line)
+                    raise FastaCompileError(errmsg)
+                line = line.lstrip(">").lstrip()
+                json_meta, title = _getjson(line)
+                for json_object in json_meta:
+                    # More than one may occur, although that would be dumb.
+                    # import_title_meta extends or overwrites meta so no return
+                    # is needed.
+                    self.import_inline_meta(meta, json_object)
+            elif line[0] == ";":
+                # Positional sequence markup metadata.
+                pos = len(''.join(lines)) + 1
+                self.handle_markup(line, pos, meta)
+            elif line[0] == "#":
+                # Comments, don't keep.
+                pass
+            elif line[0] == "$":
+                result = self.do_macro(line)
+                # Not all macros may return results, but if they do, it's to be
+                # included in current block.
+                if result: lines.append(result)
+            else:
+                lines.append(line)
+        # Make FastaObj:
+        #print("Compiled:\n> {}\n{}".format(title, ''.join(lines)))
+        FastaObj = FastaBlock(title, ''.join(lines), meta)
+        # Finally:
+        if returnblock: return FastaObj
+        else: self.namespace[FastaObj.title] = FastaObj
+
+    def as_multifasta(self, preserve_meta=True):
+        '''Return namespace in order of compilation as a multi-fasta file.
+        If preserve_meta is true, export as "metafasta", where metadata is
+        kept in a json block in the title. This is ugly, but lossless and cross-
+        compatible with other bioinfo tools, which will ignore the big title.'''
+        Export_Blocks = []
+        for subblock in self.namespace:
+            # As self.namespace is an OrderedDict, this will export in the same
+            # order as compilation occurred.
+            # Could also achieve this effect by keeping a list of compiled titles
+            # and iterating over the list to get things from the namespace dict
+            # in order: might be worth checking if this is more efficient?
+            if preserve_meta: Export_Blocks.append(self.namespace[subblock].as_metafasta())
+            else: Export_Blocks.append(self.namespace[subblock].as_fasta())
+        return '\n\n'.join(Export_Blocks)
+
+    def as_json(self, indent=2):
+        'This makes a more efficient library format so may be preferred in future.'
+        jsonablenamespace = {}
+        for FastaObject in self.namespace:
+            jsonablenamespace[FastaObject.title] = FastaObject.as_dict()
+        return json.dumps(jsonablenamespace, indent=indent)
+
+# Below codeblocks are *still used by recursive library imports*, so don't delete
+# until the "include" macro is updated to use the FastaCompiler object instead.
+
 def compile_fasta_block(fasta_block, current_namespace, linewrap=50,
                         lettercase="lower", objexport=False, macros={}):
     FastaFormat = '> {Title}\n{Sequence}'
@@ -248,14 +445,22 @@ def compile_multifasta(file_contents, multifasta_container, linelength=50,
 
 def main(Args):
     'Expects an argparse parse_args namespace.'
-    with open(Args.fastafile) as InputFile:
-        Compiled = compile_multifasta(InputFile.read(), CompiledBlocks,
-                                            Args.linelength, Args.case, macros=Macros)
-    if Args.output is not None:
-        with open(Args.output, "w") as OutputFile:
-            OutputFile.write('\n\n'.join(Compiled))
+#    with open(Args.fastafile) as InputFile:
+#        Compiled = compile_multifasta(InputFile.read(), CompiledBlocks,
+#                                            Args.linelength, Args.case, macros=Macros)
+#    if Args.output is not None:
+#        with open(Args.output, "w") as OutputFile:
+#            OutputFile.write('\n\n'.join(Compiled))
+#    else:
+#        print("\n\n".join(Compiled))
+#     def __init__(self, macros={}, linewrap=50, lettercase="lower", namespace = {}):
+    LocalCompiler = FastaCompiler(Macros, Args.linelength, Args.case)
+    LocalCompiler.compile_file(Args.fastafile)
+    if Args.output:
+        with open(Args.output, 'w') as OutFile:
+            OutFile.write(LocalCompiler.as_multifasta())
     else:
-        print("\n\n".join(Compiled))
+        print(LocalCompiler.as_multifasta())
 
 if __name__ == "__main__":
     ArgP = argparse.ArgumentParser(description="A simple 'compiler' for commented fasta.")

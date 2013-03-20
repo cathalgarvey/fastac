@@ -95,9 +95,12 @@ def include(args, currentnamespace):
     if args.lib:
         # If not already imported, import a multifasta "library" and use that as "lib".
         if args.lib not in imported_libs:
-            with open(args.lib) as IncludeFile:
-                libcontents = IncludeFile.read()
-            lib = compile_multifasta(libcontents, MultiFasta(), objexport=True, macros=Macros)
+#            with open(args.lib) as IncludeFile:
+#                libcontents = IncludeFile.read()
+#            lib = compile_multifasta(libcontents, MultiFasta(), objexport=True, macros=Macros)
+# FastaCompiler(macros={}, linewrap=50, lettercase="lower", namespace = {}):
+            lib = FastaCompiler(Macros)
+            lib.compile_file(args.lib)
             # Remember this lib in case it's referred again.
             imported_libs[args.lib] = lib
         # If already imported, use preexisting MultiFasta object from imported_libs.

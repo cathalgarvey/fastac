@@ -1,6 +1,8 @@
 # FASTAC - A FASTA Compiler
 (C) Cathal Garvey, Licensed under the GNU Affero General Public Licence v3
+
 Twitter: @onetruecathal
+
 Neglected Blog: http://www.indiebiotech.com
 
 ## What is this?

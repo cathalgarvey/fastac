@@ -22,6 +22,7 @@ $ python3 fastac.py --help
 
 Right now, output contains metadata in the title by default, such as the (inferred or user-defined) sequence type and any inline ";" comments: I'll add an option to disable this in future.
 
+## How do I extend this?
 To write your own "scripts", simply use valid multi-fasta files as "libraries", and then "include" sequences from these libraries using similar commands to those you see in the testcase.fasta file.
 
 "Macro" commands are invoked on their own lines within a fasta block with a "$" character before the macro. Macro commands have a bash-style calling syntax, with positional and optional arguments. Examples of usage are given in the testcase.fasta file.

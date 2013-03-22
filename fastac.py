@@ -129,6 +129,9 @@ def mutate(args, namespace):
     return nseq.lower()
 Macros['mutate'] = mutate
 
+# Templates: allow definition of blocks with string-substitution formatting as
+# in python, with later string formatting by keyword.
+
 class FastaError(Exception):
     'For errors deriving from bad fasta input.'
     pass
@@ -302,12 +305,14 @@ class FastaCompiler(object):
                 if result: lines.append(result)
             else:
                 lines.append(line)
-        # Make FastaObj:
-        #print("Compiled:\n> {}\n{}".format(title, ''.join(lines)))
-        FastaObj = FastaBlock(title, ''.join(lines), meta)
-        # Finally:
-        if returnblock: return FastaObj
-        else: self.namespace[FastaObj.title] = FastaObj
+        # Make & Return / Register FastaObj if a title was found.
+        # in the absence of a title, just drop everything and carry on, was
+        # probably an anonymous block for macro calls or template definitions.
+        if title:
+            FastaObj = FastaBlock(title, ''.join(lines), meta)
+            # Finally:
+            if returnblock: return FastaObj
+            else: self.namespace[FastaObj.title] = FastaObj
 
     def as_multifasta(self, preserve_meta=True):
         '''Return namespace in order of compilation as a multi-fasta file.

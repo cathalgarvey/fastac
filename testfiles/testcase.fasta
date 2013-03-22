@@ -32,3 +32,9 @@ $include --lib testlib.fasta importedPointlessAminos
 $include --lib testlib.fasta importedDerivedDNA1
 $include --lib testlib.fasta importedDerivedDNA3
 $dumb_backtranslate ImportedAminos
+
+# An anonymous block; no title means no FASTA object is
+# registered after parsing this block, so macros can be
+# freely called, and their return values will (barring
+# the action of other macros) be discarded.
+$include ImportedCrap

@@ -325,17 +325,18 @@ def main(Args):
     LocalCompiler.compile_file(Args.fastafile)
     if Args.output:
         with open(Args.output, 'w') as OutFile:
-            OutFile.write(LocalCompiler.as_multifasta())
+            OutFile.write(LocalCompiler.as_multifasta(Args.plain))
     else:
-        print(LocalCompiler.as_multifasta())
+        print(LocalCompiler.as_multifasta(Args.plain))
 
 if __name__ == "__main__":
     ArgP = argparse.ArgumentParser(description="A simple 'compiler' for commented fasta.")
     ArgP.add_argument("fastafile", help="File to compile.")
     ArgP.add_argument("-o", "--output", help="Filename to save output to. Defaults to standard output.")
-    ArgP.add_argument("-l", "--linelength",
-                      help="Length to wrap sequence blocks around. Default is 50.",
-                      type=int, default=50)
+    ArgP.add_argument("-l", "--linelength", type=int, default=50,
+                  help="Length to wrap sequence blocks around. Default is 50.")
     ArgP.add_argument("-c", "--case", default="lower",
                   help="Casing to present sequence in. Can be either 'lower' or 'upper'. Defaults to lower.")
+    ArgP.add_argument("-p", "--plain", default=True, action="store_false",
+                  help="Output plain FASTA without metadata in title line.")
     main(ArgP.parse_args())

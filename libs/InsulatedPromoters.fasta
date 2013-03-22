@@ -1,0 +1,137 @@
+> Insulated_Promoter_Prefix {"type":"dna"}
+; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
+CACAGCTAACACCACGTCGTCCCTATCTG
+CTGCCCTAGGTCTATGAGTGGTTGCTGGATA
+AC
+
+> Insulated_Promoter_Midsection {"type":"dna"}
+; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
+GGCATGCATAAGGCTCG
+
+> Insulated_Promoter_Suffix {"type":"dna"}
+; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
+ATATTC
+; Predicted transcription start site
+AGGGAGACCACAACGGTTTCCCTCTAC
+AAATAATTTTGTTTAACTTT
+
+# proA tttacg taggct
+> promoter_pro {"type":"dna"}
+#proA :proD relative Strength: 0.030
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+taggct
+$include Insulated_Promoter_Suffix
+
+#proB tttacg taatat
+> promoter_proB {"type":"dna"}
+#proB :proD relative Strength: 0.119
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+taatat
+$include Insulated_Promoter_Suffix
+
+#proC tttacg tatgat
+> promoter_proC {"type":"dna"}
+#proC :proD relative Strength: 0.278
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+tatgat
+$include Insulated_Promoter_Suffix
+
+#proD tttacg tataat
+> promoter_proD {"type":"dna"}
+#proD :proD relative Strength: 1.000
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+tataat
+$include Insulated_Promoter_Suffix
+
+#pro1 tttacg gtatct
+> promoter_pro1 {"type":"dna"}
+#pro1 :proD relative Strength: 0.009
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+gtatct
+$include Insulated_Promoter_Suffix
+
+#pro2 gcggtg tataat
+> promoter_pro2 {"type":"dna"}
+#pro2 :proD relative Strength: 0.017
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+gcggtg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+tataat
+$include Insulated_Promoter_Suffix
+
+#pro3 tttacg gaggat
+> promoter_pro3 {"type":"dna"}
+#pro3 :proD relative Strength: 0.017
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+gaggat
+$include Insulated_Promoter_Suffix
+
+#pro4 tttacg gatgat
+> promoter_pro4 {"type":"dna"}
+#pro4 :proD relative Strength: 0.033
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+gatgat
+$include Insulated_Promoter_Suffix
+
+#pro5 tttacg taggat
+> promoter_pro5 {"type":"dna"}
+#pro5 :proD relative Strength: 0.050
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+taggat
+$include Insulated_Promoter_Suffix
+
+#pro6 tttacg taaaat
+> promoter_pro6 {"type":"dna"}
+#pro6 :proD relative Strength: 0.193
+; Upstream Promoter Insulation
+$include Insulated_Promoter_Prefix
+; -35 Hexamer
+tttacg
+$include Insulated_Promoter_Midsection
+; -10 Hexamer
+taaaat
+; Downstream Promoter Insulation
+$include Insulated_Promoter_Suffix

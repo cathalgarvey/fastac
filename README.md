@@ -35,6 +35,7 @@ Available macros as of first upload are:
 include [--lib libraryfile] fasta_block_by_title
 complement [--lib libraryfile] fasta_block_by_title
 translate [--lib libraryfile] [--table table_name] fasta_block_by_title
+mutate [--lib libraryfile] fasta_block_by_title sequence_index replacement_character
 dumb_backtranslate [--lib libraryfile] [--table table_name] fasta_block_by_title
 
 Adding new macros is ~easy: Just define a function that takes a list of arguments as returned by the shlex.split() function in the Python standard library, and a FastaCompiler object (which defines the current scope for the macro, allowing libraries to recurse).

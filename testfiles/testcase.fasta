@@ -9,7 +9,8 @@ CGGATTTACCC
 mklpggdaaryy
 
 > ExampleAmino2
-plkvvmasc
+#plkvvmasc
+$mutate ExampleAmino1 3 v
 
 > DerivedDNA1
 $include ExampleDNA1

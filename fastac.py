@@ -116,6 +116,19 @@ def dumb_backtranslate(args, namespace):
     return rtr_seq
 Macros['dumb_backtranslate'] = dumb_backtranslate
 
+def mutate(args, namespace):
+    ArgP = argparse.ArgumentParser()
+    ArgP.add_argument("block_name")
+    ArgP.add_argument("--lib")
+    ArgP.add_argument("position", type=int)
+    ArgP.add_argument("substitution", type=str)
+    args = ArgP.parse_args(args)
+    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
+    seq = Macros['include'](inc_call, namespace)
+    nseq = seq[:args.position-1] + args.substitution + seq[args.position:]
+    return nseq.lower()
+Macros['mutate'] = mutate
+
 class FastaError(Exception):
     'For errors deriving from bad fasta input.'
     pass

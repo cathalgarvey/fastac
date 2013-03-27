@@ -53,7 +53,7 @@ Macros = {
 # Sample macro, either references a pre-compiled fasta object or imports a library
 # as a new MultiFasta file and gets the fasta object from that.
 imported_libs = {}
-def include(args, namespace):
+def include(args, env_dict):
     # Using argparse allows flexible use of the argument list with optional args
     # etc, and suits the use of shlex.split() perfectly as it mimics a bash-like
     # interface.
@@ -75,62 +75,115 @@ def include(args, namespace):
         # If already imported, use preexisting FastaCompiler object from imported_libs.
         else: lib = imported_libs[args.lib]
     else:
-        lib = namespace
+        # Use current FastaCompiler object, passed as "namespace".
+        lib = env_dict['namespace']
     return lib.get_block_sequence(args.block_name)
 Macros['include'] = include
 
-def complement(args, namespace):
+def _peer_call_include(block_name, lib_name, env_dict):
+    'An internal shorthand for calling include from other "macros" despite pre-parsed args.'
+    call_args = ["--lib", lib_name, block_name] if lib_name else [block_name]
+    return Macros['include'](call_args, env_dict)
+Macros['_peer_call_include'] = _peer_call_include
+
+def complement(args, env_dict):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     args = ArgP.parse_args(args)
     # This demonstrates trans-macro calls, but also the awkwardness of doing so with
     # optional arguments and argparse..
-    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, namespace)
+    #inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
+    #seq = Macros['include'](inc_call, env_dict)
+    # Here's a shortcut defined above because repeating those too lines was depressing:
+    seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     seq = sequtils.get_complement(seq)
     return seq.lower()
 Macros['complement'] = complement
 
-def translate(args, namespace):
+def translate(args, env_dict):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
-    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, namespace)
+    #inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
+    #seq = Macros['include'](inc_call, env_dict)
+    seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     aminoseq = sequtils.translate(seq, args.table)
     return aminoseq
 Macros['translate'] = translate
 
-def dumb_backtranslate(args, namespace):
+def dumb_backtranslate(args, env_dict):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
-    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, namespace)
+#    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
+#    seq = Macros['include'](inc_call, env_dict)
+    seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     rtr_seq = sequtils.dumb_backtranslate(seq, args.table)
     return rtr_seq
 Macros['dumb_backtranslate'] = dumb_backtranslate
 
-def mutate(args, namespace):
+def mutate(args, env_dict):
+    '''Returns specified block with a single-point substitution.
+    Usage: $mutate [--lib libfile] block position substitution'''
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     ArgP.add_argument("position", type=int)
     ArgP.add_argument("substitution", type=str)
     args = ArgP.parse_args(args)
-    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    seq = Macros['include'](inc_call, namespace)
+#    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
+#    seq = Macros['include'](inc_call, env_dict)
+    seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     nseq = seq[:args.position-1] + args.substitution + seq[args.position:]
     return nseq.lower()
 Macros['mutate'] = mutate
 
+def def_template(args, env_dict):
+    '''Registers the foregoing parsed_lines as a new template in the templates dictionary.
+    Templates take the form of positional or named python format strings: positional
+    arguments are parsed into a list and unpacked, while named arguments are searched for
+    in the local namespace (the namespace is simply unpacked into the format arguments).
+    Support for cross-library templating would be nice.
+
+    Format:
+    # No title block, or the template will also be registered in the "compiled" namespace.
+    ; Stuff to precede first "argument":
+    gcattgactagatc
+    ; First argument:
+    {0}
+    ; Named import from current compiled namespace:
+    {priorblock1}
+    ; Another argument:
+    {1}
+    ; more stuff to add afterwards
+    cccaatctggtgctgtgt
+
+    Usage:
+    $def_template template_name'''
+    ArgP = argparse.ArgumentParser()
+    ArgP.add_argument("template-name")
+    args = ArgP.parse_args(args)
+    env_dict['templates'][args.template_name] = ''.join(env_dict['current_lines'])
 # Templates: allow definition of blocks with string-substitution formatting as
 # in python, with later string formatting by keyword.
+Macros['def_template'] = def_template
+
+def use_template(args, env_dict):
+    '''Should accept a variable number of string arguments which refer to blocks
+    by name, then fetch those blocks' sequences as strings. These are used as
+    positional arguments to the string format method. The namespace dict is also
+    unpacked into the format method call, so format strings can embed local blocks
+    by name as part of the template.'''
+    # NB: Will have to create an interface for FastaObjects so format() can use
+    # them straight from the namespace. Alternatively, create an ugly little
+    # class with a getter method that gets the sequence of contained fasta objs,
+    # and hack that in as a property of the Parser object, referring to the namespace.
+    pass
 
 class FastaError(Exception):
     'For errors deriving from bad fasta input.'
@@ -179,11 +232,13 @@ class FastaBlock(object):
 class FastaCompiler(object):
     '''Contains methods for compiling blocks, multifasta files.
     Also acts as a scope for precompiled blocks.'''
-    def __init__(self, macros={}, linewrap=50, lettercase="lower", namespace = {}):
+    def __init__(self, macros={}, linewrap=50, lettercase="lower", namespace = {}, templates = {}):
         self.macros = macros
         self.linewrap = linewrap
         self.lettercase = lettercase
         self.namespace = collections.OrderedDict(namespace)
+        self.templates = templates
+
     def compile_file(self, filen):
         with open(filen) as InputFile:
             self.compile_multifasta(InputFile.read())
@@ -209,16 +264,19 @@ class FastaCompiler(object):
     def get_block_sequence(self, title):
         return self.get_block(title).sequence
 
-    def do_macro(self, macroline):
-        '''Handles macro calls. Can be made more useful/complex later by
-        allowing macros to define "actions" to undertake with returned data,
-        so that macros can return entire sequence blocks to be registered in
-        the namespace directly rather than included in the current compile
-        block, for example.'''
+    def do_macro(self, macroline, current_lines):
+        '''Is passed the macro call line and all lines already parsed.
+        As macros are passed this and the Parser object itself, macros can
+        independently define actions to take directly on the namespace or Parser.'''
         macroline = shlex.split(macroline.strip()[1:])
+        # Passing a dict of environment stuff allows extension of environment
+        # variables or objects passed to macros/functions without having to
+        # rewrite them all again..
+        environment = {"current_lines":current_lines,
+                       "namespace":self}
         if macroline[0] in self.macros:
             # Macros should be passed the Compiler or Namespace object:
-            result = self.macros[macroline[0]](macroline[1:], self)
+            result = self.macros[macroline[0]](macroline[1:], environment)
         if result: return result
 
     @staticmethod
@@ -299,7 +357,7 @@ class FastaCompiler(object):
                 # Comments, don't keep.
                 pass
             elif line[0] == "$":
-                result = self.do_macro(line)
+                result = self.do_macro(line, lines)
                 # Not all macros may return results, but if they do, it's to be
                 # included in current block.
                 if result: lines.append(result)

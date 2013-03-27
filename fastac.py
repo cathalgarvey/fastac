@@ -43,16 +43,39 @@ def _getjson(string):
     for i in strblocks: string = string.replace(i, '').strip()
     return blocks, string
 
+def get_lib_var(string):
+    '''Returns "lib" and "varname" for a given string of either "varname" or
+    "lib.varname" form; lib defaults to None.
+    String will often take the form "foo.fasta.some fasta block", in which case
+    this function will return ("foo.fasta", "some fasta block"), as splitting
+    commences from the right side of the string and stops after the first period
+    it encounters.'''
+    lib, varname = None, None
+    if "." in string: lib, varname = string.rsplit(".",1)
+    else: varname = string
+    return lib, varname
+
 Macros = {
 # Place macro functions in this dictionary. They should accept a list of arguments
 # as given by shlex.split: one convenient way to handle this is to define an
 # argparse.ArgumentParser instance for each function and have the function call
 # this ArgumentParser's parse_args() method on each invocation's list of arguments.
+# Additionally each function should accept a dictionary that represents its immediate
+# environment; at time of writing, this dict will contain previously parsed lines
+# in the current block, and the Parser instance doing the parsing, allowing direct
+# manipulation of Parser/Namespace data.
 }
 
-# Sample macro, either references a pre-compiled fasta object or imports a library
-# as a new MultiFasta file and gets the fasta object from that.
+# imported_libs contains Parsers used to parse referenced "libraries", but not the
+# current parser. Parsers are keyed by the name of their library file.
 imported_libs = {}
+def get_library(libname):
+    if libname not in imported_libs:
+        lib = FastaCompiler(Macros)
+        lib.compile_file(libname)
+        imported_libs[libname] = lib
+    return imported_libs[libname]
+
 def include(args, env_dict):
     # Using argparse allows flexible use of the argument list with optional args
     # etc, and suits the use of shlex.split() perfectly as it mimics a bash-like
@@ -64,20 +87,19 @@ def include(args, env_dict):
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     args = ArgP.parse_args(args)
-    if args.lib:
+    # Below: if args.lib is explicitly given by "--lib" syntax, use that and the blockname
+    # as given. Otherwise, check the blockname for an implicit lib import: libname.blockname,
+    # and parse that into libname, blockname.
+    # This enables either syntax to be used, although there will be times when an explicit
+    # --lib import helps overcome filename abnormalities, or unlikely local/library name conflicts.
+    libname, blockname = (args.lib, args.block_name) if args.lib else get_lib_var(args.block_name)
+    if libname:
         # If not already imported, import a multifasta "library" and use that as "lib".
-        if args.lib not in imported_libs:
-            # Spawn a new FastaCompiler to import target library file.
-            lib = FastaCompiler(Macros)
-            lib.compile_file(args.lib)
-            # Remember this lib in case it's referred again.
-            imported_libs[args.lib] = lib
-        # If already imported, use preexisting FastaCompiler object from imported_libs.
-        else: lib = imported_libs[args.lib]
+        lib = get_library(args.lib)
     else:
         # Use current FastaCompiler object, passed as "namespace".
         lib = env_dict['namespace']
-    return lib.get_block_sequence(args.block_name)
+    return lib.get_block_sequence(blockname)
 Macros['include'] = include
 
 def _peer_call_include(block_name, lib_name, env_dict):

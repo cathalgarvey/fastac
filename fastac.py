@@ -190,6 +190,7 @@ def use_template(args, env_dict):
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("templatename")
     ArgP.add_argument("argblocks", nargs="+") # Result is a list of all free args.
+    ArgP.add_argument("-r", "--raw", action="store_true")
     args = ArgP.parse_args(args)
     # Should write a getter for this so it can parse "foo.bar" or "foo:bar"
     # to get templates from libs.
@@ -198,13 +199,17 @@ def use_template(args, env_dict):
         lib = get_library(templatelib)
     else:
         lib = env_dict['namespace']
-#        template = env_dict['namespace'].templates[args.templatename]
     template = lib.templates[templatename]
     positional_seqs = []
     for blockname in args.argblocks:
-        # Now that include natively supports implicit imports like libname.fasta.blockname,
-        # the use of library blocks to *fill* a template is supported, also.
-        positional_seqs.append(Macros['_peer_call_include'](blockname, None, env_dict))
+        if args.raw:
+            # In this mode, "blockname" is actually a literal string to use!
+            positional_seqs.append(blockname)
+        else:
+            # The default mode; fetch blocks by name.
+            # Now that include natively supports implicit imports like libname.fasta.blockname,
+            # the use of library blocks to *fill* a template is supported, also.
+            positional_seqs.append(Macros['_peer_call_include'](blockname, None, env_dict))
     return template.format(*positional_seqs, **lib.namespace)
 Macros['use_template'] = use_template
 

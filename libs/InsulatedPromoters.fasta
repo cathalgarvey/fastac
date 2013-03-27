@@ -15,123 +15,50 @@ ATATTC
 AGGGAGACCACAACGGTTTCCCTCTAC
 AAATAATTTTGTTTAACTTT
 
-# proA tttacg taggct
-> promoter_pro {"type":"dna"}
-#proA :proD relative Strength: 0.030
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-taggct
-$include Insulated_Promoter_Suffix
+# Defining promoter template:
+{Insulated_Promoter_Prefix}
+{0}
+{Insulated_Promoter_Midsection}
+{1}
+{Insulated_Promoter_Suffix}
+$def_template proXTemplate
 
-#proB tttacg taatat
-> promoter_proB {"type":"dna"}
-#proB :proD relative Strength: 0.119
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-taatat
-$include Insulated_Promoter_Suffix
+> promoter_proA
+# proA :proD relative Strength: 0.030
+$use_template -r proXTemplate tttacg taggct
 
-#proC tttacg tatgat
+> promoter_proB
+# proB :proD relative Strength: 0.119
+$use_template -r proXTemplate tttacg taatat
+
 > promoter_proC {"type":"dna"}
-#proC :proD relative Strength: 0.278
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-tatgat
-$include Insulated_Promoter_Suffix
+# proC :proD relative Strength: 0.278
+$use_template -r proXTemplate tttacg tatgat
 
-#proD tttacg tataat
 > promoter_proD {"type":"dna"}
-#proD :proD relative Strength: 1.000
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-tataat
-$include Insulated_Promoter_Suffix
+# proD :proD relative Strength: 1.000
+$use_template -r proXTemplate tttacg tataat
 
-#pro1 tttacg gtatct
 > promoter_pro1 {"type":"dna"}
-#pro1 :proD relative Strength: 0.009
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-gtatct
-$include Insulated_Promoter_Suffix
+# pro1 :proD relative Strength: 0.009
+$use_template -r proXTemplate tttacg gtatct
 
-#pro2 gcggtg tataat
 > promoter_pro2 {"type":"dna"}
-#pro2 :proD relative Strength: 0.017
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-gcggtg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-tataat
-$include Insulated_Promoter_Suffix
+# pro2 :proD relative Strength: 0.017
+$use_template -r proXTemplate gcggtg tataat
 
-#pro3 tttacg gaggat
 > promoter_pro3 {"type":"dna"}
-#pro3 :proD relative Strength: 0.017
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-gaggat
-$include Insulated_Promoter_Suffix
+# pro3 :proD relative Strength: 0.017
+$use_template -r proXTemplate tttacg gaggat
 
-#pro4 tttacg gatgat
 > promoter_pro4 {"type":"dna"}
-#pro4 :proD relative Strength: 0.033
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-gatgat
-$include Insulated_Promoter_Suffix
+# pro4 :proD relative Strength: 0.033
+$use_template -r proXTemplate tttacg gatgat
 
-#pro5 tttacg taggat
 > promoter_pro5 {"type":"dna"}
-#pro5 :proD relative Strength: 0.050
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-taggat
-$include Insulated_Promoter_Suffix
+# pro5 :proD relative Strength: 0.050
+$use_template -r proXTemplate tttacg taggat
 
-#pro6 tttacg taaaat
 > promoter_pro6 {"type":"dna"}
-#pro6 :proD relative Strength: 0.193
-; Upstream Promoter Insulation
-$include Insulated_Promoter_Prefix
-; -35 Hexamer
-tttacg
-$include Insulated_Promoter_Midsection
-; -10 Hexamer
-taaaat
-; Downstream Promoter Insulation
-$include Insulated_Promoter_Suffix
+# pro6 :proD relative Strength: 0.193
+$use_template -r proXTemplate tttacg taaaat

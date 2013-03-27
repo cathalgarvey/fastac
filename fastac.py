@@ -78,24 +78,26 @@ def get_library(libname):
 
 def include(args, env_dict):
     # Using argparse allows flexible use of the argument list with optional args
-    # etc, and suits the use of shlex.split() perfectly as it mimics a bash-like
-    # interface.
-    # However, there is little point including "fluff" like description, help, etc,
-    # as these macros are called as functions and will not be able to return help
-    # to the user!
+    # etc, and suits the use of shlex.split() as it mimics a bash-like interface.
+    # There is little point including "fluff" like description, help, etc,
+    # as these macros will not be able to return help to the user!
     ArgP = argparse.ArgumentParser()
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     args = ArgP.parse_args(args)
-    # Below: if args.lib is explicitly given by "--lib" syntax, use that and the blockname
-    # as given. Otherwise, check the blockname for an implicit lib import: libname.blockname,
-    # and parse that into libname, blockname.
-    # This enables either syntax to be used, although there will be times when an explicit
-    # --lib import helps overcome filename abnormalities, or unlikely local/library name conflicts.
-    libname, blockname = (args.lib, args.block_name) if args.lib else get_lib_var(args.block_name)
+    # Below: if --lib is passed, then blockname is used exactly as given.
+    # Otherwise, blockname is checked for a period character, which implies an
+    # import, and is split by the final period character to give lib and blockname.
+    # This means only single-depth imports are possible, so no lib1.lib2.fooblock,
+    # but this is necessary as library files are specified by filename, and will
+    # usually be called whatever.fasta, so imports are "whatever.fasta.someblock".
+    if args.lib != None:
+        libname, blockname = args.lib, args.block_name
+    else:
+        libname, blockname = get_lib_var(args.block_name)
     if libname:
         # If not already imported, import a multifasta "library" and use that as "lib".
-        lib = get_library(args.lib)
+        lib = get_library(libname)
     else:
         # Use current FastaCompiler object, passed as "namespace".
         lib = env_dict['namespace']
@@ -113,11 +115,7 @@ def complement(args, env_dict):
     ArgP.add_argument("block_name")
     ArgP.add_argument("--lib")
     args = ArgP.parse_args(args)
-    # This demonstrates trans-macro calls, but also the awkwardness of doing so with
-    # optional arguments and argparse..
-    #inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    #seq = Macros['include'](inc_call, env_dict)
-    # Here's a shortcut defined above because repeating those too lines was depressing:
+    # This demonstrates trans-macro calls, but also the awkwardness of doing so
     seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     seq = sequtils.get_complement(seq)
     return seq.lower()
@@ -129,8 +127,6 @@ def translate(args, env_dict):
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
-    #inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-    #seq = Macros['include'](inc_call, env_dict)
     seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     aminoseq = sequtils.translate(seq, args.table)
     return aminoseq
@@ -142,8 +138,6 @@ def dumb_backtranslate(args, env_dict):
     ArgP.add_argument("--lib")
     ArgP.add_argument("--table", default="table1")
     args = ArgP.parse_args(args)
-#    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-#    seq = Macros['include'](inc_call, env_dict)
     seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     rtr_seq = sequtils.dumb_backtranslate(seq, args.table)
     return rtr_seq
@@ -158,8 +152,6 @@ def mutate(args, env_dict):
     ArgP.add_argument("position", type=int)
     ArgP.add_argument("substitution", type=str)
     args = ArgP.parse_args(args)
-#    inc_call = [args.block_name, "--lib", args.lib] if args.lib else [args.block_name]
-#    seq = Macros['include'](inc_call, env_dict)
     seq = Macros['_peer_call_include'](args.block_name, args.lib, env_dict)
     nseq = seq[:args.position-1] + args.substitution + seq[args.position:]
     return nseq.lower()
@@ -430,11 +422,15 @@ def main(Args):
     'Expects an argparse parse_args namespace.'
     LocalCompiler = FastaCompiler(Macros, Args.linelength, Args.case)
     LocalCompiler.compile_file(Args.fastafile)
+    output = LocalCompiler.as_multifasta(Args.plain)
+    if Args.last:
+        # Split to get only the last block.
+        output = output.split("\n\n").pop()
     if Args.output:
         with open(Args.output, 'w') as OutFile:
-            OutFile.write(LocalCompiler.as_multifasta(Args.plain))
+            OutFile.write(output)
     else:
-        print(LocalCompiler.as_multifasta(Args.plain))
+        print(output)
 
 if __name__ == "__main__":
     ArgP = argparse.ArgumentParser(description="A simple 'compiler' for commented fasta.")
@@ -446,4 +442,6 @@ if __name__ == "__main__":
                   help="Casing to present sequence in. Can be either 'lower' or 'upper'. Defaults to lower.")
     ArgP.add_argument("-p", "--plain", default=True, action="store_false",
                   help="Output plain FASTA without metadata in title line.")
+    ArgP.add_argument("-L", "--last", default=False, action="store_true",
+                  help="Only output the last fasta block compiled in the main file.")
     main(ArgP.parse_args())

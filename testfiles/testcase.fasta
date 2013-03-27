@@ -26,7 +26,8 @@ $include --lib testlib.fasta importedDNA1
 $include DerivedDNA1
 
 > ImportedAminos
-$include --lib testlib.fasta importedPointlessAminos
+# Uses alternative shorthand import format.
+$include testlib.fasta.importedPointlessAminos
 
 > ImportedCrap
 $include --lib testlib.fasta importedDerivedDNA1
@@ -39,7 +40,7 @@ $dumb_backtranslate ImportedAminos
 # the action of other macros) be discarded.
 $include ImportedCrap
 {0}
-CGATCGATCGATCGAT
+{DerivedDNA2}
 $def_template foo_template
 
 > TemplateInject

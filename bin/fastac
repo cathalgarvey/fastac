@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+import argparse
+from fastac import *
+
+def main(Args):
+    'Expects an argparse parse_args namespace.'
+    LocalCompiler = FastaCompiler(Macros, Args.linelength, Args.case)
+    LocalCompiler.compile_file(Args.fastafile)
+    output = LocalCompiler.as_multifasta(Args.plain, Args.print_all)
+    if Args.last:
+        # Split to get only the last block.
+        output = output.split("\n\n").pop()
+    if Args.output:
+        with open(Args.output, 'w') as OutFile:
+            OutFile.write(output)
+    else:
+        print(output)
+
+if __name__ == "__main__":
+    ArgP = argparse.ArgumentParser(description="A simple 'compiler' for commented fasta.")
+    ArgP.add_argument("fastafile", help="File to compile.")
+    ArgP.add_argument("-o", "--output", help="Filename to save output to. Defaults to standard output.")
+    ArgP.add_argument("-l", "--linelength", type=int, default=50,
+                  help="Length to wrap sequence blocks around. Default is 50.")
+    ArgP.add_argument("-c", "--case", default="lower",
+                  help="Casing to present sequence in. Can be either 'lower' or 'upper'. Defaults to lower.")
+    ArgP.add_argument("-p", "--plain", default=True, action="store_false",
+                  help="Output plain FASTA without metadata in title line.")
+    ArgP.add_argument("-P", "--print-all", default=False, action="store_true",
+                  help="Prints all blocks, including those with the 'private' metatag.")
+    ArgP.add_argument("-L", "--last", default=False, action="store_true",
+                  help="Only output the last fasta block compiled in the main file.")
+    main(ArgP.parse_args())

@@ -25,5 +25,5 @@ Scripting extensions include:
 * Markup of blocks as "private", enabling internal definition of sub-blocks for
   scripting use only which are not themselves exported to compiled FASTA.
 '''
-__version__ = "0.1"
+__version__ = "0.2"
 from fastac.compilefasta import FastaCompiler, FastaBlock, Macros, FastaError, FastaCompileError

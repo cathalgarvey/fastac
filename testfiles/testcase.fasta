@@ -25,26 +25,29 @@ $include ExampleAmino2
 $include --lib testlib.fasta importedDNA1
 $include DerivedDNA1
 
-> ImportedAminos
-# Uses alternative shorthand import format.
-$include testlib.fasta.importedPointlessAminos
+#> ImportedAminos
+## Uses alternative shorthand import format.
+#$include testlib.fasta.importedPointlessAminos
 
 > ImportedCrap
 $include --lib testlib.fasta importedDerivedDNA1
 $include --lib testlib.fasta importedDerivedDNA3
-$dumb_backtranslate ImportedAminos
+$dumb_backtranslate testlib.fasta.importedPointlessAminos
 
 # An anonymous block; no title means no FASTA object is
 # registered after parsing this block, so macros can be
 # freely called, and their return values will (barring
 # the action of other macros) be discarded.
-$include ImportedCrap
+$include ExampleDNA2
 {0}
-{DerivedDNA2}
+{ExampleDNA1}
 $def_template foo_template
 
 > TemplateInject
 CCCCCCCCCCCCCCCC
 
-> TemplateUsageExample
+> LocalTemplateExample
 $use_template foo_template TemplateInject
+
+> RemoteTemplateExample
+$use_template "testlib.fasta.Template 1" "testlib2.fasta.deepDNA3" "LocalTemplateExample"

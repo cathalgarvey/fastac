@@ -14,8 +14,15 @@ $complement importedDerivedDNA1
 $complement --lib testlib2.fasta deepDNA2
 
 > importedPointlessAminos
-$translate --lib testlib2.fasta deepDNA1
+$translate testlib2.fasta.deepDNA1
 
 > importedDerivedDNA3
 $dumb_backtranslate --lib testlib2.fasta deepAminos1
 
+# Must not include title line starting with > when defining templates!
+GGGG
+{0}
+{importedDNA1}
+{1}
+{importedDNA2}
+$def_template "Template 1"

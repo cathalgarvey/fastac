@@ -193,11 +193,19 @@ def use_template(args, env_dict):
     args = ArgP.parse_args(args)
     # Should write a getter for this so it can parse "foo.bar" or "foo:bar"
     # to get templates from libs.
-    template = env_dict['namespace'].templates[args.templatename]
+    templatelib, templatename = get_lib_var(args.templatename)
+    if templatelib:
+        lib = get_library(templatelib)
+    else:
+        lib = env_dict['namespace']
+#        template = env_dict['namespace'].templates[args.templatename]
+    template = lib.templates[templatename]
     positional_seqs = []
     for blockname in args.argblocks:
+        # Now that include natively supports implicit imports like libname.fasta.blockname,
+        # the use of library blocks to *fill* a template is supported, also.
         positional_seqs.append(Macros['_peer_call_include'](blockname, None, env_dict))
-    return template.format(*positional_seqs, **env_dict['namespace'].namespace)
+    return template.format(*positional_seqs, **lib.namespace)
 Macros['use_template'] = use_template
 
 class FastaError(Exception):

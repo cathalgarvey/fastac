@@ -149,28 +149,19 @@ def def_template(args, env_dict):
     arguments are parsed into a list and unpacked, while named arguments are searched for
     in the local namespace (the namespace is simply unpacked into the format arguments).
     Support for cross-library templating would be nice.
-
     Format:
     # No title block, or the template will also be registered in the "compiled" namespace.
     ; Stuff to precede first "argument":
-    gcattgactagatc
-    ; First argument:
-    {0}
+    gcattgactagatc{0}
     ; Named import from current compiled namespace:
     {priorblock1}
-    ; Another argument:
-    {1}
-    ; more stuff to add afterwards
-    cccaatctggtgctgtgt
-
-    Usage:
-    $def_template template_name'''
+    ; Another argument with more stuff to add after
+    {1}cccaatctggtgctgtgt
+    $def_template foo_template'''
     ArgP = argparse.ArgumentParser()
-    ArgP.add_argument("template-name")
+    ArgP.add_argument("templatename")
     args = ArgP.parse_args(args)
-    env_dict['templates'][args.template_name] = ''.join(env_dict['current_lines'])
-# Templates: allow definition of blocks with string-substitution formatting as
-# in python, with later string formatting by keyword.
+    env_dict['namespace'].templates[args.templatename] = ''.join(env_dict['current_lines'])
 Macros['def_template'] = def_template
 
 def use_template(args, env_dict):
@@ -179,11 +170,21 @@ def use_template(args, env_dict):
     positional arguments to the string format method. The namespace dict is also
     unpacked into the format method call, so format strings can embed local blocks
     by name as part of the template.'''
-    # NB: Will have to create an interface for FastaObjects so format() can use
-    # them straight from the namespace. Alternatively, create an ugly little
-    # class with a getter method that gets the sequence of contained fasta objs,
-    # and hack that in as a property of the Parser object, referring to the namespace.
-    pass
+    # NB: Added a __str__ method to FastaBlock objects to allow them to be used
+    #  directly in string format method, so can now unpack
+    #  env_dict['namespace'].namespace directly with "**".
+    ArgP = argparse.ArgumentParser()
+    ArgP.add_argument("templatename")
+    ArgP.add_argument("argblocks", nargs="+") # Result is a list of all free args.
+    args = ArgP.parse_args(args)
+    # Should write a getter for this so it can parse "foo.bar" or "foo:bar"
+    # to get templates from libs.
+    template = env_dict['namespace'].templates[args.templatename]
+    positional_seqs = []
+    for blockname in args.argblocks:
+        positional_seqs.append(Macros['_peer_call_include'](blockname, None, env_dict))
+    return template.format(*positional_seqs, **env_dict['namespace'].namespace)
+Macros['use_template'] = use_template
 
 class FastaError(Exception):
     'For errors deriving from bad fasta input.'
@@ -228,6 +229,10 @@ class FastaBlock(object):
         Metatitle = '{} {}'.format(self.title, json.dumps(self.meta))
         OutSeq = '\n'.join([x for x in self._chunks(self.sequence, linewrap)])
         return self.FastaFormat.format(Metatitle, OutSeq)
+
+    def __str__(self):
+        'Returns sequence only; this allows objects to be unpacked into string format method.'
+        return self.sequence
 
 class FastaCompiler(object):
     '''Contains methods for compiling blocks, multifasta files.
@@ -274,9 +279,13 @@ class FastaCompiler(object):
         # rewrite them all again..
         environment = {"current_lines":current_lines,
                        "namespace":self}
+        result = ''
         if macroline[0] in self.macros:
             # Macros should be passed the Compiler or Namespace object:
             result = self.macros[macroline[0]](macroline[1:], environment)
+        else:
+            errmsg = "Could not find macro/function named '{0}'".format(macroline[0])
+            raise FastaCompileError(errmsg)
         if result: return result
 
     @staticmethod

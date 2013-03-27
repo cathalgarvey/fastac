@@ -408,7 +408,7 @@ class FastaCompiler(object):
             if returnblock: return FastaObj
             else: self.namespace[FastaObj.title] = FastaObj
 
-    def as_multifasta(self, preserve_meta=True):
+    def as_multifasta(self, preserve_meta=True, print_all=False):
         '''Return namespace in order of compilation as a multi-fasta file.
         If preserve_meta is true, export as "metafasta", where metadata is
         kept in a json block in the title. This is ugly, but lossless and cross-
@@ -420,6 +420,9 @@ class FastaCompiler(object):
             # Could also achieve this effect by keeping a list of compiled titles
             # and iterating over the list to get things from the namespace dict
             # in order: might be worth checking if this is more efficient?
+            if "private" in self.namespace[subblock].meta and\
+             self.namespace[subblock].meta["private"] and\
+             not print_all: continue
             if preserve_meta: Export_Blocks.append(self.namespace[subblock].as_metafasta())
             else: Export_Blocks.append(self.namespace[subblock].as_fasta())
         return '\n\n'.join(Export_Blocks)
@@ -435,7 +438,7 @@ def main(Args):
     'Expects an argparse parse_args namespace.'
     LocalCompiler = FastaCompiler(Macros, Args.linelength, Args.case)
     LocalCompiler.compile_file(Args.fastafile)
-    output = LocalCompiler.as_multifasta(Args.plain)
+    output = LocalCompiler.as_multifasta(Args.plain, Args.print_all)
     if Args.last:
         # Split to get only the last block.
         output = output.split("\n\n").pop()
@@ -455,6 +458,8 @@ if __name__ == "__main__":
                   help="Casing to present sequence in. Can be either 'lower' or 'upper'. Defaults to lower.")
     ArgP.add_argument("-p", "--plain", default=True, action="store_false",
                   help="Output plain FASTA without metadata in title line.")
+    ArgP.add_argument("-P", "--print-all", default=False, action="store_true",
+                  help="Prints all blocks, including those with the 'private' metatag.")
     ArgP.add_argument("-L", "--last", default=False, action="store_true",
                   help="Only output the last fasta block compiled in the main file.")
     main(ArgP.parse_args())

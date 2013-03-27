@@ -1,14 +1,14 @@
-> Insulated_Promoter_Prefix {"type":"dna"}
+> Insulated_Promoter_Prefix {"type":"dna", "private":true}
 ; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
 CACAGCTAACACCACGTCGTCCCTATCTG
 CTGCCCTAGGTCTATGAGTGGTTGCTGGATA
 AC
 
-> Insulated_Promoter_Midsection {"type":"dna"}
+> Insulated_Promoter_Midsection {"type":"dna", "private":true}
 ; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
 GGCATGCATAAGGCTCG
 
-> Insulated_Promoter_Suffix {"type":"dna"}
+> Insulated_Promoter_Suffix {"type":"dna", "private":true}
 ; "From Design, construction and characterization of a set of insulated bacterial promoters" Davis, Rubin and Sauer, 2010
 ATATTC
 ; Predicted transcription start site

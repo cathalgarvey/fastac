@@ -70,3 +70,12 @@ Then, I plan to integrate DNAmespace so that Genbank files can be used as Librar
 I also plan to revamp the "macros" system a little so that macros are defined in a separate, more easily extended, file, or perhaps are imported from all files in a directory, allowing drag/drop addition of plugins.
 
 I am happy to accept offers to extend this system provided they pass all the test cases and add useful functions. I am not interested in "coding style" or "PEP8" submissions, as I'm quite comfortable remembering the code as I have written it, thank you. :)
+
+What's Included?
+----------------
+A number of "libs" are included in the directory of the same name. These are not installed by pip or by running ```setup.py install```, but may be of use in your own designs. Contained therein are only parts that are known to be safe from violation by patents, either by private correspondance to me to that effect or due to licensing under the Biobrick Pubic Agreement or similar.
+
+As the Biobrick Public Agreement requires that I publish their logo when distributing parts, here you go (sigh). Below, you'll either see the path to the image, or if rendered by either ReStructured Text or Markdown, the image as included in this directory.
+
+.. image:: bbf_logo.png
+![Biobrick Logo](bbf_logo.png)
